@@ -30,21 +30,21 @@ def start_worker_loop():
 def start_worker_in_thread():
     t = threading.Thread(target=start_worker_loop, daemon=True)
     t.start()
-    print("⚡ [WORKER] Async worker loop started...")
+    print("[WORKER] Async worker loop started...")
 
 # ------------------------------
 # REDIS LISTENER
 # ------------------------------
 
 def redis_listener():
-    print("👷 [WORKER] Redis listener started")
+    print("[WORKER] Redis listener started")
     while True:
         item = redis.blpop(EVENT_LIST, timeout=5)
         if not item:
             continue
 
         _, raw = item
-        print(f"📤 [WORKER] Pulled event: {raw}")
+        print(f"[WORKER] Pulled event: {raw}")
 
         event = json.loads(raw)
 
@@ -60,15 +60,15 @@ def start_redis_listener():
 # ------------------------------
 
 async def enqueue_event(event: dict):
-    print("📥 [QUEUE] Received event, pushing into Redis")
+    print("[QUEUE] Received event, pushing into Redis")
     redis.rpush(EVENT_LIST, json.dumps(event))
 
 async def process_event(event: dict):
-    print("🔍 [PROCESS] Processing event...")
+    print("[PROCESS] Processing event...")
 
     # 1. Enrichment
     enrich = await enrich_ip(event.get("ip"))
-    print(f"🌐 [ENRICH RESULT] {enrich}")
+    print(f"[ENRICH RESULT] {enrich}")
 
     # 2. ML featurization & training
     await add_and_maybe_train(event)
@@ -105,7 +105,7 @@ async def process_event(event: dict):
     # 5. alert only if threshold exceeded
     if severity >= 0.3:
         await create_and_notify(event, severity, extra={"enrich": enrich})
-        print("🚨 [ALERT] Alert created!")
+        print("[ALERT] Alert created!")
     else:
         print("ℹ️ [INFO] Event below threshold.")
 

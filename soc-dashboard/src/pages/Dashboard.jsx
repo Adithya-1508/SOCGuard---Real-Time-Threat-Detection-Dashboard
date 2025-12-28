@@ -22,10 +22,16 @@ export default function Dashboard() {
     // 1. Initial Fetch
     const fetchInitialData = async () => {
       try {
+        const currentToken = localStorage.getItem('token');
+        if (!currentToken) {
+          console.warn("⚠️ [Dashboard] No token found during fetch attempt");
+          return;
+        }
+        const headers = { 'Authorization': `Bearer ${currentToken}` };
         const [statsRes, chartRes, alertsRes] = await Promise.all([
-          fetch("http://localhost:8000/api/alerts/stats"),
-          fetch("http://localhost:8000/api/alerts/chart"),
-          fetch("http://localhost:8000/api/alerts/?limit=50")
+          fetch("http://localhost:8000/api/alerts/stats/", { headers }),
+          fetch("http://localhost:8000/api/alerts/chart/", { headers }),
+          fetch("http://localhost:8000/api/alerts/?limit=50", { headers })
         ]);
 
         if (statsRes.ok) setStats(await statsRes.json());
@@ -172,10 +178,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Chart Section */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl">
+        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl min-h-[400px]">
           <h3 className="text-lg font-bold text-[var(--foreground)] mb-6">Alert Volume (24h)</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={300}>
               <AreaChart data={chartData} onClick={handleChartClick} className="cursor-pointer">
                 <defs>
                   <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">

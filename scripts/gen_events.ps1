@@ -2,7 +2,11 @@ $api = "http://localhost:8000/api/ingest"
 
 function Send-Event($body) {
     try {
-        Invoke-WebRequest -Uri $api -Method POST -Headers @{ "Content-Type" = "application/json" } -Body ($body | ConvertTo-Json -Depth 5) -UseBasicParsing | Out-Null
+        $headers = @{ 
+            "Content-Type" = "application/json"
+            "X-Collector-Token" = "super-secret-collector-token"
+        }
+        Invoke-WebRequest -Uri $api -Method POST -Headers $headers -Body ($body | ConvertTo-Json -Depth 5) -UseBasicParsing | Out-Null
     } catch {
         Write-Host "Error sending event: $_"
     }

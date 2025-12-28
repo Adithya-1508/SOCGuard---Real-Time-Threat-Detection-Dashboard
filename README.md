@@ -1,4 +1,4 @@
-# 🛡️ Real-Time Threat Detection & SOC Dashboard
+# 🛡️ SOCGuard - Real-Time Threat Detection Dashboard
 
 A modernized, full-stack Security Operations Center (SOC) dashboard capable of **ingesting, analyzing, and visualizing security events in real-time**. 
 

@@ -71,11 +71,11 @@ def _store_alert_sync(alert: dict):
             conn.commit()
 
             aid = result.scalar()
-            print(f"🚨 [ALERT] Stored alert ID={aid}")
+            print(f"[ALERT] Stored alert ID={aid}")
             return aid
 
     except Exception as e:
-        print(f"❌ [DB-sync ERROR] {e}")
+        print(f"[DB-sync ERROR] {e}")
         return None
 
 
@@ -97,9 +97,9 @@ async def send_webhook(alert: dict):
     try:
         async with httpx.AsyncClient(timeout=6) as client:
             await client.post(ALERT_WEBHOOK, json=alert)
-            print("🌐 [WEBHOOK] Sent")
+            print("[WEBHOOK] Sent")
     except Exception as e:
-        print("❌ [WEBHOOK ERROR]", e)
+        print("[WEBHOOK ERROR]", e)
 
 
 # ------------------------------------------------------------
@@ -107,7 +107,7 @@ async def send_webhook(alert: dict):
 # ------------------------------------------------------------
 async def send_email(subject: str, body: str, to_addrs: list):
     if not SMTP_HOST or not SMTP_USER:
-        print("✉️ [EMAIL] SMTP disabled — skipping")
+        print("[EMAIL] SMTP disabled — skipping")
         return
 
     msg = EmailMessage()
@@ -125,10 +125,10 @@ async def send_email(subject: str, body: str, to_addrs: list):
             password=SMTP_PASS,
             start_tls=True,
         )
-        print("📧 [EMAIL] Sent!")
+        print("[EMAIL] Sent!")
 
     except Exception as e:
-        print("❌ [EMAIL ERROR]", e)
+        print("[EMAIL ERROR]", e)
 
 
 # ------------------------------------------------------------
@@ -158,15 +158,16 @@ async def create_and_notify(event: dict, severity: float, extra: dict):
     alert["id"] = aid
 
     if aid is None:
-        print("❌ [ALERT] Failed to save alert (aid=None)")
+        print("[ALERT] Failed to save alert (aid=None)")
     else:
-        print(f"🚨 [ALERT] Alert created: ID {aid} — Sev={severity}")
+        print(f"[ALERT] Alert created: ID {aid} — Sev={severity}")
 
     # notify parallel
     from app.websockets import manager
+    broadcast_data = {"type": "new_alert", "payload": alert}
     await asyncio.gather(
         send_webhook(alert),
-        manager.broadcast(alert),
+        manager.broadcast(broadcast_data),
         send_email(
             f"Security Alert [{severity:.2f}]",
             summary,

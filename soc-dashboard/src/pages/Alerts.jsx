@@ -47,7 +47,9 @@ export default function Alerts() {
       ...(searchParams.get("end_time") && { end_time: searchParams.get("end_time") }),
     });
 
-    fetch(`http://localhost:8000/api/alerts/?${params}`)
+    fetch(`http://localhost:8000/api/alerts/?${params}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(res => {
         if (res.ok) return res.json();
         throw new Error("API not reachable");
@@ -69,11 +71,18 @@ export default function Alerts() {
     };
 
     ws.onmessage = (event) => {
-      const newAlert = JSON.parse(event.data);
-      // Only prepend if on the first page and matches current filters (basic check)
-      if (page === 1 && !search && !severity && !status && !source) {
-        setAlerts(prev => [newAlert, ...prev].slice(0, limit));
-        setTotal(prev => prev + 1);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "new_alert") {
+          const newAlert = data.payload;
+          // Only prepend if on the first page and matches current filters (basic check)
+          if (page === 1 && !search && !severity && !status && !source) {
+            setAlerts(prev => [newAlert, ...prev].slice(0, limit));
+            setTotal(prev => prev + 1);
+          }
+        }
+      } catch (e) {
+        console.error("WS error:", e);
       }
     };
 

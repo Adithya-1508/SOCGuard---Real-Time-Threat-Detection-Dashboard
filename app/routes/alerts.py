@@ -118,7 +118,7 @@ from datetime import datetime, timedelta, timezone
 
 # ... imports ...
 
-@router.get("/chart")
+@router.get("/chart/")
 async def get_chart_data(user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     # Align to the start of the current hour in UTC
     now = datetime.now(timezone.utc)
@@ -159,10 +159,9 @@ async def get_chart_data(user: User = Depends(get_current_user), session: AsyncS
             "alerts": buckets[t],
             "timestamp": t.isoformat()
         })
-        
     return chart_data
 
-@router.get("/stats")
+@router.get("/stats/")
 async def get_stats(user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     # Total Active Alerts (status != 'closed')
     total_stmt = select(func.count(Alert.id)).where(Alert.status != "closed")

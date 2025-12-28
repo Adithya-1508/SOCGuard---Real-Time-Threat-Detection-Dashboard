@@ -8,7 +8,11 @@ export default function AlertDetailsModal({ alert, onClose }) {
     const [users, setUsers] = useState([]);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
-    const [assignee, setAssignee] = useState(alert?.assigned_to || "");
+    const [assignee, setAssignee] = useState("");
+
+    useEffect(() => {
+        setAssignee(alert?.assigned_to || "");
+    }, [alert]);
 
     useEffect(() => {
         if (alert) {
@@ -16,9 +20,15 @@ export default function AlertDetailsModal({ alert, onClose }) {
             fetch("http://localhost:8000/auth/users", {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
-                .then(res => res.json())
-                .then(data => setUsers(data))
-                .catch(err => console.error("Failed to fetch users", err));
+                .then(res => {
+                    if (!res.ok) throw new Error("Fetch failed");
+                    return res.json();
+                })
+                .then(data => setUsers(Array.isArray(data) ? data : []))
+                .catch(err => {
+                    console.error("Failed to fetch users", err);
+                    setUsers([]);
+                });
 
             // Fetch Comments
             fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
@@ -188,7 +198,14 @@ export default function AlertDetailsModal({ alert, onClose }) {
                             <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
                                 <span className="text-xs text-slate-400 block mb-1">Time</span>
                                 <span className="text-sm text-[var(--foreground)]">
-                                    {alert.created_at ? formatDistanceToNow(new Date(alert.created_at), { addSuffix: true }) : 'N/A'}
+                                    {(() => {
+                                        try {
+                                            return alert.created_at ? formatDistanceToNow(new Date(alert.created_at), { addSuffix: true }) : 'N/A';
+                                        } catch (e) {
+                                            console.error("Invalid date:", alert.created_at);
+                                            return 'Invalid Date';
+                                        }
+                                    })()}
                                 </span>
                             </div>
                             <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
@@ -210,11 +227,29 @@ export default function AlertDetailsModal({ alert, onClose }) {
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex flex-wrap gap-2">
-                                        {alert.threat_tags ? (
-                                            (typeof alert.threat_tags === 'string' && alert.threat_tags.startsWith('[') ? JSON.parse(alert.threat_tags) : Array.isArray(alert.threat_tags) ? alert.threat_tags : [alert.threat_tags]).map((tag, i) => (
-                                                <span key={i} className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300">{tag}</span>
-                                            ))
-                                        ) : <span className="text-xs text-slate-500">No tags</span>}
+                                        {(() => {
+                                            try {
+                                                if (!alert.threat_tags) return <span className="text-xs text-slate-500">No tags</span>;
+
+                                                let tags = alert.threat_tags;
+                                                if (typeof tags === 'string') {
+                                                    if (tags.startsWith('[') || tags.startsWith('{')) {
+                                                        tags = JSON.parse(tags);
+                                                    } else {
+                                                        tags = [tags];
+                                                    }
+                                                }
+
+                                                if (!Array.isArray(tags)) tags = [tags];
+
+                                                return tags.map((tag, i) => (
+                                                    <span key={i} className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300">{tag}</span>
+                                                ));
+                                            } catch (e) {
+                                                console.error("Failed to parse threat_tags:", alert.threat_tags);
+                                                return <span className="text-xs text-slate-500">Error parsing tags</span>;
+                                            }
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -243,7 +278,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
                                 className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="">Unassigned</option>
-                                {users.map(u => (
+                                {Array.isArray(users) && users.map(u => (
                                     <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
                                 ))}
                             </select>
@@ -262,7 +297,15 @@ export default function AlertDetailsModal({ alert, onClose }) {
                                         <div key={c.id} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3">
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className="text-xs font-bold text-blue-400">{c.user_name || 'User'}</span>
-                                                <span className="text-[10px] text-slate-500">{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
+                                                <span className="text-[10px] text-slate-500">
+                                                    {(() => {
+                                                        try {
+                                                            return formatDistanceToNow(new Date(c.created_at), { addSuffix: true });
+                                                        } catch (e) {
+                                                            return 'unknown time';
+                                                        }
+                                                    })()}
+                                                </span>
                                             </div>
                                             <p className="text-sm text-slate-300">{c.content}</p>
                                         </div>

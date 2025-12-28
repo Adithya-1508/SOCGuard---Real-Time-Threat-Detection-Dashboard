@@ -10,7 +10,9 @@ export default function RecentAlerts() {
     const [selectedAlert, setSelectedAlert] = useState(null);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/alerts/?limit=5")
+        fetch("http://localhost:8000/api/alerts/?limit=5", {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
             .then(res => {
                 if (res.ok) return res.json();
                 throw new Error("Failed to fetch alerts");
