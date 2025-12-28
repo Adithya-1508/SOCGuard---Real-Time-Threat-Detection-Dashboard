@@ -1,0 +1,318 @@
+import { useState, useEffect } from "react";
+import { X, AlertTriangle, Clock, Server, Activity, CheckCircle, Play, User, MessageSquare, Send } from "lucide-react";
+import clsx from "clsx";
+import { formatDistanceToNow } from "date-fns";
+
+export default function AlertDetailsModal({ alert, onClose }) {
+    const [investigating, setInvestigating] = useState(false);
+    const [users, setUsers] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState("");
+    const [assignee, setAssignee] = useState(alert?.assigned_to || "");
+
+    useEffect(() => {
+        if (alert) {
+            // Fetch Users
+            fetch("http://localhost:8000/auth/users", {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+                .then(res => res.json())
+                .then(data => setUsers(data))
+                .catch(err => console.error("Failed to fetch users", err));
+
+            // Fetch Comments
+            fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+                .then(res => res.json())
+                .then(data => setComments(data))
+                .catch(err => console.error("Failed to fetch comments", err));
+        }
+    }, [alert]);
+
+    if (!alert) return null;
+
+    // Parse details if it's a string
+    let details = {};
+    try {
+        details = typeof alert.details === 'string' ? JSON.parse(alert.details) : alert.details;
+    } catch (e) {
+        details = { raw: alert.details };
+    }
+
+    const handleInvestigate = async () => {
+        setInvestigating(true);
+        try {
+            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ status: 'Investigating' })
+            });
+
+            if (res.ok) {
+                onClose();
+            }
+        } catch (error) {
+            console.error("Failed to investigate:", error);
+        } finally {
+            setInvestigating(false);
+        }
+    };
+
+    const handleAssign = async (userId) => {
+        try {
+            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ assigned_to: userId })
+            });
+            if (res.ok) {
+                setAssignee(userId);
+            }
+        } catch (error) {
+            console.error("Failed to assign:", error);
+        }
+    };
+
+    const handleAddComment = async (e) => {
+        e.preventDefault();
+        if (!newComment.trim()) return;
+
+        try {
+            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ content: newComment })
+            });
+
+            if (res.ok) {
+                const comment = await res.json();
+                // Optimistically add user name if we know it (current user)
+                // For now, re-fetch or just append with "You"
+                setComments([...comments, { ...comment, user_name: "You" }]);
+                setNewComment("");
+            }
+        } catch (error) {
+            console.error("Failed to add comment:", error);
+        }
+    };
+
+    const handleAction = async (action) => {
+        try {
+            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}/actions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ action })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                // Refresh comments to show the system action
+                fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                })
+                    .then(res => res.json())
+                    .then(data => setComments(data));
+
+                alert("Action executed: " + data.message);
+            }
+        } catch (error) {
+            console.error("Failed to execute action:", error);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+            <div className="w-full max-w-4xl glass-panel rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-[var(--border)] shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className={clsx(
+                            "p-3 rounded-xl",
+                            alert.severity === "critical" && "bg-red-500/10 text-red-500",
+                            alert.severity === "high" && "bg-orange-500/10 text-orange-500",
+                            alert.severity === "medium" && "bg-yellow-500/10 text-yellow-500",
+                            alert.severity === "low" && "bg-blue-500/10 text-blue-500",
+                        )}>
+                            <AlertTriangle size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-[var(--foreground)]">Alert Details</h2>
+                            <p className="text-slate-400 text-sm">ID: {alert.id}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-[var(--foreground)] transition-colors">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Left Column: Details */}
+                    <div className="flex-1 p-6 space-y-6 overflow-y-auto border-r border-[var(--border)]">
+
+                        {/* Summary */}
+                        <div>
+                            <h3 className="text-sm font-medium text-slate-400 mb-2">Summary</h3>
+                            <p className="text-lg font-medium text-[var(--foreground)]">{alert.summary}</p>
+                        </div>
+
+                        {/* Grid Details */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                                <span className="text-xs text-slate-400 block mb-1">Severity</span>
+                                <span className={clsx(
+                                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase",
+                                    alert.severity === "critical" && "bg-red-500/10 text-red-500",
+                                    alert.severity === "high" && "bg-orange-500/10 text-orange-500",
+                                    alert.severity === "medium" && "bg-yellow-500/10 text-yellow-500",
+                                    alert.severity === "low" && "bg-blue-500/10 text-blue-500",
+                                )}>{alert.severity}</span>
+                            </div>
+                            <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                                <span className="text-xs text-slate-400 block mb-1">Source</span>
+                                <span className="text-sm font-mono text-[var(--foreground)]">{alert.source}</span>
+                            </div>
+                            <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                                <span className="text-xs text-slate-400 block mb-1">Time</span>
+                                <span className="text-sm text-[var(--foreground)]">
+                                    {alert.created_at ? formatDistanceToNow(new Date(alert.created_at), { addSuffix: true }) : 'N/A'}
+                                </span>
+                            </div>
+                            <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                                <span className="text-xs text-slate-400 block mb-1">IP Address</span>
+                                <span className="text-sm font-mono text-[var(--foreground)]">{alert.ip || 'N/A'}</span>
+                            </div>
+                        </div>
+
+                        {/* Threat Intel */}
+                        <div>
+                            <h3 className="text-sm font-medium text-slate-400 mb-2">Threat Intelligence</h3>
+                            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] flex items-center gap-4">
+                                <div className="relative w-16 h-16 flex items-center justify-center">
+                                    <svg className="w-full h-full transform -rotate-90">
+                                        <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-800" />
+                                        <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={175.9} strokeDashoffset={175.9 - (175.9 * (alert.reputation_score || 0)) / 100} className={clsx((alert.reputation_score || 0) > 80 ? "text-red-500" : "text-green-500")} />
+                                    </svg>
+                                    <span className="absolute text-sm font-bold text-[var(--foreground)]">{alert.reputation_score ?? '-'}</span>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex flex-wrap gap-2">
+                                        {alert.threat_tags ? (
+                                            (typeof alert.threat_tags === 'string' && alert.threat_tags.startsWith('[') ? JSON.parse(alert.threat_tags) : Array.isArray(alert.threat_tags) ? alert.threat_tags : [alert.threat_tags]).map((tag, i) => (
+                                                <span key={i} className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300">{tag}</span>
+                                            ))
+                                        ) : <span className="text-xs text-slate-500">No tags</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Raw Details */}
+                        <div>
+                            <h3 className="text-sm font-medium text-slate-400 mb-2">Raw Data</h3>
+                            <div className="rounded-lg bg-slate-950 border border-[var(--border)] p-3 overflow-x-auto">
+                                <pre className="text-xs font-mono text-slate-400">{JSON.stringify(details, null, 2)}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Case Management */}
+                    <div className="w-80 p-6 bg-slate-900/20 flex flex-col gap-6">
+
+                        {/* Assignee */}
+                        <div>
+                            <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                                <User size={14} /> Assignee
+                            </h3>
+                            <select
+                                value={assignee}
+                                onChange={(e) => handleAssign(e.target.value)}
+                                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Unassigned</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Comments */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <h3 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+                                <MessageSquare size={14} /> Comments
+                            </h3>
+                            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                                {comments.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-500 text-xs">No comments yet.</div>
+                                ) : (
+                                    comments.map(c => (
+                                        <div key={c.id} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="text-xs font-bold text-blue-400">{c.user_name || 'User'}</span>
+                                                <span className="text-[10px] text-slate-500">{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-300">{c.content}</p>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <form onSubmit={handleAddComment} className="relative">
+                                <input
+                                    type="text"
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    placeholder="Add a note..."
+                                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg pl-3 pr-10 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!newComment.trim()}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 disabled:opacity-50"
+                                >
+                                    <Send size={16} />
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="pt-4 border-t border-[var(--border)] space-y-3">
+                            {alert.status !== 'Investigating' && alert.status !== 'Resolved' && (
+                                <button
+                                    onClick={handleInvestigate}
+                                    disabled={investigating}
+                                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {investigating ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <Play size={16} />}
+                                    Start Investigation
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => handleAction('block_ip')}
+                                className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 font-medium transition-all flex items-center justify-center gap-2"
+                            >
+                                <Activity size={16} />
+                                Block IP Address
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+}

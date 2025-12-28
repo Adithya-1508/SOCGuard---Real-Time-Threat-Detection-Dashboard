@@ -1,0 +1,25 @@
+# Environments
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.pytest_cache/
+
+# Frontend
+soc-dashboard/node_modules/
+soc-dashboard/dist/
+soc-dashboard/.env.local
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+backend_logs*.txt
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
