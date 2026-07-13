@@ -42,7 +42,8 @@ async def add_and_maybe_train(event: Dict):
         if _model is None and len(_features) >= 200:
             X = np.array(_features)
             _model = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
-            _model.fit(X)
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, _model.fit, X)
 
 async def score_event(event: Dict) -> float:
     """Return anomaly score: higher -> more anomalous (0..inf)."""

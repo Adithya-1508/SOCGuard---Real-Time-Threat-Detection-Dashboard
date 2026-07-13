@@ -26,10 +26,8 @@ async def enrich_ip(ip: str) -> Dict:
                     out["reputation"] = data.get("data", {}).get("abuseConfidenceScore")
                     if out["reputation"] is not None:
                         out["blacklists"].append("abuseipdb")
-        except Exception:
-            pass
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[-] AbuseIPDB Enrichment Error: {e}")
             
     # AlienVault OTX Integration
     try:

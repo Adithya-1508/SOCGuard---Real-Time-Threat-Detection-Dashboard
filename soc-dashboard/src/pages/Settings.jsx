@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Save, Server, Shield, Lock, Users, Clock, Globe } from "lucide-react";
 import clsx from "clsx";
+import { API_BASE_URL } from "../config";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("system");
@@ -19,7 +20,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/settings/")
+    fetch(`${API_BASE_URL}/api/settings/`)
       .then(res => res.json())
       .then(data => {
         if (Object.keys(data).length > 0) {
@@ -31,7 +32,7 @@ export default function Settings() {
 
   const handleSave = () => {
     setLoading(true);
-    fetch("http://localhost:8000/api/settings/", {
+    fetch(`${API_BASE_URL}/api/settings/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings })

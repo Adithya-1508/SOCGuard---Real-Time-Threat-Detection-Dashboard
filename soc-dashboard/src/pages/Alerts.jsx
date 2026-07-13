@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search, Filter, AlertTriangle, MoreVertical, ChevronLeft, ChevronRight, X } from "lucide-react";
 import clsx from "clsx";
 import AlertDetailsModal from "../components/AlertDetailsModal";
+import { API_BASE_URL, WS_BASE_URL } from "../config";
 
 export default function Alerts() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,7 +48,7 @@ export default function Alerts() {
       ...(searchParams.get("end_time") && { end_time: searchParams.get("end_time") }),
     });
 
-    fetch(`http://localhost:8000/api/alerts/?${params}`, {
+    fetch(`${API_BASE_URL}/api/alerts/?${params}`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
       .then(res => {
@@ -64,7 +65,7 @@ export default function Alerts() {
 
   // WebSocket Connection
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/api/alerts/ws");
+    const ws = new WebSocket(`${WS_BASE_URL}/api/alerts/ws`);
 
     ws.onopen = () => {
       console.log("Connected to WebSocket");

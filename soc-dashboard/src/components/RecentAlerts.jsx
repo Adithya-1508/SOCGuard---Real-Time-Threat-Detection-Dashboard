@@ -4,13 +4,14 @@ import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import AlertDetailsModal from "./AlertDetailsModal";
+import { API_BASE_URL } from "../config";
 
 export default function RecentAlerts() {
     const [alerts, setAlerts] = useState([]);
     const [selectedAlert, setSelectedAlert] = useState(null);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/alerts/?limit=5", {
+        fetch(`${API_BASE_URL}/api/alerts/?limit=5`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         })
             .then(res => {

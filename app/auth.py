@@ -12,10 +12,24 @@ from app.models import User
 import os
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-insecure-key-do-not-use-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if os.getenv("ENV") == "production":
+        raise RuntimeError("SECRET_KEY environment variable is required in production mode!")
+    import warnings
+    warnings.warn("SECRET_KEY is not set. Using insecure fallback secret key for development.")
+    SECRET_KEY = "fallback-insecure-key-do-not-use-in-production"
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-COLLECTOR_TOKEN = os.getenv("COLLECTOR_TOKEN", "super-secret-collector-token")
+
+COLLECTOR_TOKEN = os.getenv("COLLECTOR_TOKEN")
+if not COLLECTOR_TOKEN:
+    if os.getenv("ENV") == "production":
+        raise RuntimeError("COLLECTOR_TOKEN environment variable is required in production mode!")
+    import warnings
+    warnings.warn("COLLECTOR_TOKEN is not set. Using insecure fallback collector token for development.")
+    COLLECTOR_TOKEN = "super-secret-collector-token"
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)

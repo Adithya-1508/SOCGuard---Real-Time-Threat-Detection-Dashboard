@@ -121,6 +121,9 @@ def monitor_network():
                         print(f"[NET] {msg}")
             
             known_connections = current_connections
+        except psutil.AccessDenied:
+            print("[-] Access Denied: Network Monitor requires administrative privileges. Disabling network monitoring.")
+            break
         except Exception as e:
             print(f"[-] Network Monitor Error: {e}")
             

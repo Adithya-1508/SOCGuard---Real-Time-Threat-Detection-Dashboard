@@ -4,6 +4,7 @@ import { Shield, AlertOctagon, Users, Activity, Download } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import StatCard from "../components/StatCard";
 import RecentAlerts from "../components/RecentAlerts";
+import { API_BASE_URL, WS_BASE_URL } from "../config";
 
 import WorldMap from "../components/WorldMap";
 
@@ -29,9 +30,9 @@ export default function Dashboard() {
         }
         const headers = { 'Authorization': `Bearer ${currentToken}` };
         const [statsRes, chartRes, alertsRes] = await Promise.all([
-          fetch("http://localhost:8000/api/alerts/stats/", { headers }),
-          fetch("http://localhost:8000/api/alerts/chart/", { headers }),
-          fetch("http://localhost:8000/api/alerts/?limit=50", { headers })
+          fetch(`${API_BASE_URL}/api/alerts/stats/`, { headers }),
+          fetch(`${API_BASE_URL}/api/alerts/chart/`, { headers }),
+          fetch(`${API_BASE_URL}/api/alerts/?limit=50`, { headers })
         ]);
 
         if (statsRes.ok) setStats(await statsRes.json());
@@ -48,7 +49,7 @@ export default function Dashboard() {
     let reconnectTimer = null;
 
     const connectWebSocket = () => {
-      ws = new WebSocket("ws://localhost:8000/api/alerts/ws");
+      ws = new WebSocket(`${WS_BASE_URL}/api/alerts/ws`);
 
       ws.onopen = () => {
         console.log("✅ [Dashboard] Connected to WebSocket");
@@ -102,7 +103,7 @@ export default function Dashboard() {
 
   const handleExport = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/alerts/export", {
+      const res = await fetch(`${API_BASE_URL}/api/alerts/export`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.ok) {

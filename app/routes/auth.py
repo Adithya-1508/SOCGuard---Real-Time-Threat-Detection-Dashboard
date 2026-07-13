@@ -157,7 +157,8 @@ async def google_callback(code: str, session: AsyncSession = Depends(get_session
     
     if not user:
         # Create user if not exists (random password since they use Google)
-        random_pw = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+        import secrets
+        random_pw = secrets.token_urlsafe(16)
         hashed_pw = get_password_hash(random_pw)
         user = User(email=email, hashed_password=hashed_pw, full_name=user_info.get("name"))
         session.add(user)

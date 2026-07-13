@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 import { Lock, Mail, ShieldAlert } from "lucide-react";
 
 export default function Login() {
@@ -34,7 +35,7 @@ export default function Login() {
 
     const handleGoogleLogin = async () => {
         try {
-            const res = await fetch("http://localhost:8000/auth/google/login");
+            const res = await fetch(`${API_BASE_URL}/auth/google/login`);
             if (!res.ok) throw new Error("Failed to fetch login URL");
             const data = await res.json();
             if (data.url) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 
 export default function Register() {
@@ -15,7 +16,7 @@ export default function Register() {
         e.preventDefault();
         setError("");
         try {
-            const res = await fetch("http://localhost:8000/auth/register", {
+            const res = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, full_name: fullName }),
@@ -35,7 +36,7 @@ export default function Register() {
     };
 
     const handleGoogleLogin = async () => {
-        const res = await fetch("http://localhost:8000/auth/google/login");
+        const res = await fetch(`${API_BASE_URL}/auth/google/login`);
         const data = await res.json();
         window.location.href = data.url;
     };

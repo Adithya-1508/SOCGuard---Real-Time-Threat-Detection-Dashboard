@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 import { KeyRound, Mail, ArrowRight, CheckCircle } from "lucide-react";
 
 export default function ForgotPassword() {
@@ -17,7 +18,7 @@ export default function ForgotPassword() {
         setError("");
         setMessage("");
         try {
-            const res = await fetch("http://localhost:8000/auth/forgot-password", {
+            const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -36,7 +37,7 @@ export default function ForgotPassword() {
         e.preventDefault();
         setError("");
         try {
-            const res = await fetch("http://localhost:8000/auth/verify-otp", {
+            const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),

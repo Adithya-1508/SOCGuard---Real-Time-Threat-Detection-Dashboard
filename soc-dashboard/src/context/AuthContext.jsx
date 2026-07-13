@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from "react";
+import { API_BASE_URL } from "../config";
 
 const AuthContext = createContext(null);
 
@@ -11,7 +12,7 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             setLoading(true);
             // Verify token and get user details
-            fetch("http://localhost:8000/auth/me", {
+            fetch(`${API_BASE_URL}/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             })
                 .then((res) => {
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         formData.append("username", email);
         formData.append("password", password);
 
-        const res = await fetch("http://localhost:8000/auth/token", {
+        const res = await fetch(`${API_BASE_URL}/auth/token`, {
             method: "POST",
             body: formData,
         });

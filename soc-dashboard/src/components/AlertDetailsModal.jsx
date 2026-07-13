@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, AlertTriangle, Clock, Server, Activity, CheckCircle, Play, User, MessageSquare, Send } from "lucide-react";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
+import { API_BASE_URL } from "../config";
 
 export default function AlertDetailsModal({ alert, onClose }) {
     const [investigating, setInvestigating] = useState(false);
@@ -17,7 +18,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
     useEffect(() => {
         if (alert) {
             // Fetch Users
-            fetch("http://localhost:8000/auth/users", {
+            fetch(`${API_BASE_URL}/auth/users`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
                 .then(res => {
@@ -31,7 +32,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
                 });
 
             // Fetch Comments
-            fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+            fetch(`${API_BASE_URL}/api/alerts/${alert.id}/comments`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
                 .then(res => res.json())
@@ -53,7 +54,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
     const handleInvestigate = async () => {
         setInvestigating(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/alerts/${alert.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
 
     const handleAssign = async (userId) => {
         try {
-            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/alerts/${alert.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
         if (!newComment.trim()) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+            const res = await fetch(`${API_BASE_URL}/api/alerts/${alert.id}/comments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
 
     const handleAction = async (action) => {
         try {
-            const res = await fetch(`http://localhost:8000/api/alerts/${alert.id}/actions`, {
+            const res = await fetch(`${API_BASE_URL}/api/alerts/${alert.id}/actions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export default function AlertDetailsModal({ alert, onClose }) {
             if (res.ok) {
                 const data = await res.json();
                 // Refresh comments to show the system action
-                fetch(`http://localhost:8000/api/alerts/${alert.id}/comments`, {
+                fetch(`${API_BASE_URL}/api/alerts/${alert.id}/comments`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 })
                     .then(res => res.json())
