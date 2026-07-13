@@ -47,6 +47,12 @@ async def on_startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    print("[APP] Seeding database playbooks...")
+    from app.routes.copilot import seed_playbooks_if_empty
+    from app.db import AsyncSessionLocal
+    async with AsyncSessionLocal() as session:
+        await seed_playbooks_if_empty(session)
+
     print("[APP] Starting worker thread now...")
     start_worker_in_thread()
     start_redis_listener()

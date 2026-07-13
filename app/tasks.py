@@ -107,9 +107,10 @@ async def get_ai_explanation(event: dict) -> str:
         "max_tokens": 150
     }
     
+    base_url = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.post("https://integrate.api.nvidia.com/v1/chat/completions", json=payload, headers=headers)
+            r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
             if r.status_code == 200:
                 explanation = r.json()["choices"][0]["message"]["content"]
                 # Save to cache for 24h
@@ -144,10 +145,15 @@ async def run_multi_agent_investigation(event: dict, database_context: str) -> s
         "Content-Type": "application/json"
     }
     
-    # 1. Spawn Intel Agent to check IP
-    ip = event.get("ip", "")
-    intel_report = "No reputation details."
-    if ip and ip != "127.0.0.1":
+    base_url = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+    chat_url = f"{base_url}/chat/completions"
+
+    import asyncio
+
+    async def fetch_intel():
+        ip = event.get("ip", "")
+        if not ip or ip == "127.0.0.1":
+            return "No reputation details for local/empty IP."
         intel_prompt = f"Analyze this IP address for potential reputation risks or known blocklists: {ip}."
         payload_intel = {
             "model": "meta/llama-3.1-8b-instruct",
@@ -160,36 +166,40 @@ async def run_multi_agent_investigation(event: dict, database_context: str) -> s
         }
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                r = await client.post("https://integrate.api.nvidia.com/v1/chat/completions", json=payload_intel, headers=headers)
+                r = await client.post(chat_url, json=payload_intel, headers=headers)
                 if r.status_code == 200:
-                    intel_report = r.json()["choices"][0]["message"]["content"]
+                    return r.json()["choices"][0]["message"]["content"]
+                return f"Intel Agent Error: {r.status_code}"
         except Exception as e:
-            intel_report = f"Intel Agent failed: {e}"
+            return f"Intel Agent failed: {e}"
 
-    # 2. Spawn Correlation Agent to check historical logs
-    correlation_prompt = (
-        f"Correlate the new event with this recent alerts history context:\n"
-        f"New Event: {event}\n"
-        f"Recent History: {database_context}\n"
-        f"Find correlation patterns like lateral movement, brute force, or repeated attacks."
-    )
-    payload_corr = {
-        "model": "meta/llama-3.1-8b-instruct",
-        "messages": [
-            {"role": "system", "content": "You are a Correlation and Threat Hunter Agent. Analyze logs context."},
-            {"role": "user", "content": correlation_prompt}
-        ],
-        "temperature": 0.2,
-        "max_tokens": 250
-    }
-    correlation_report = "No correlation context."
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.post("https://integrate.api.nvidia.com/v1/chat/completions", json=payload_corr, headers=headers)
-            if r.status_code == 200:
-                correlation_report = r.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        correlation_report = f"Correlation Agent failed: {e}"
+    async def fetch_correlation():
+        correlation_prompt = (
+            f"Correlate the new event with this recent alerts history context:\n"
+            f"New Event: {event}\n"
+            f"Recent History: {database_context}\n"
+            f"Find correlation patterns like lateral movement, brute force, or repeated attacks."
+        )
+        payload_corr = {
+            "model": "meta/llama-3.1-8b-instruct",
+            "messages": [
+                {"role": "system", "content": "You are a Correlation and Threat Hunter Agent. Analyze logs context."},
+                {"role": "user", "content": correlation_prompt}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 250
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.post(chat_url, json=payload_corr, headers=headers)
+                if r.status_code == 200:
+                    return r.json()["choices"][0]["message"]["content"]
+                return f"Correlation Agent Error: {r.status_code}"
+        except Exception as e:
+            return f"Correlation Agent failed: {e}"
+
+    # Run subagents in parallel
+    intel_report, correlation_report = await asyncio.gather(fetch_intel(), fetch_correlation())
 
     # 3. Supervisor Agent orchestrates and compiles the final report
     supervisor_prompt = (
@@ -211,7 +221,7 @@ async def run_multi_agent_investigation(event: dict, database_context: str) -> s
     }
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post("https://integrate.api.nvidia.com/v1/chat/completions", json=payload_super, headers=headers)
+            r = await client.post(chat_url, json=payload_super, headers=headers)
             if r.status_code == 200:
                 return r.json()["choices"][0]["message"]["content"]
             else:
