@@ -36,6 +36,8 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       OTX_API_KEY: ${OTX_API_KEY}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      NVIDIA_BASE_URL: ${NVIDIA_BASE_URL}
       SECRET_KEY: ${SECRET_KEY:-fallback-insecure-key-do-not-use-in-production}
       COLLECTOR_TOKEN: ${COLLECTOR_TOKEN:-super-secret-collector-token}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
