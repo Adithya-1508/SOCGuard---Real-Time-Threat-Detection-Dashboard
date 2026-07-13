@@ -33,5 +33,28 @@ async def execute_action(alert: Alert, action: str, user: User, session: AsyncSe
         # Manual trigger for enrichment (if we wanted to re-run it)
         return "Enrichment triggered (mock)."
         
+    elif action == "investigate":
+        # Manual Multi-Agent Investigation
+        from app.tasks import get_recent_alerts_context, run_multi_agent_investigation
+        
+        event = {
+            "source": alert.source,
+            "ip": alert.ip,
+            "message": alert.summary,
+            "user": "Unknown"
+        }
+        
+        db_context = await get_recent_alerts_context()
+        report = await run_multi_agent_investigation(event, db_context)
+        alert.agent_report = report
+        
+        new_comment = Comment(
+            alert_id=alert.id,
+            user_id=user.id,
+            content=f"SYSTEM ACTION: Manual Multi-Agent Investigation completed. Report: {report[:100]}..."
+        )
+        session.add(new_comment)
+        return "Investigation report generated."
+        
     else:
         raise ValueError(f"Unknown action: {action}")

@@ -109,6 +109,8 @@ async def list_alerts(
                 "threat_tags": a.threat_tags,
                 "latitude": a.latitude,
                 "longitude": a.longitude,
+                "explanation": a.explanation,
+                "agent_report": a.agent_report,
             }
             for a in alerts
         ]

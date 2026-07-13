@@ -59,3 +59,5 @@ from app.routes.auth import router as auth_router
 app.include_router(auth_router)
 from app.routes.settings import router as settings_router
 app.include_router(settings_router)
+from app.routes.copilot import router as copilot_router
+app.include_router(copilot_router)

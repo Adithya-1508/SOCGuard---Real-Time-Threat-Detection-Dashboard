@@ -18,6 +18,8 @@ class Alert(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    explanation = Column(Text, nullable=True)
+    agent_report = Column(Text, nullable=True)
     
     assignee = relationship("User", backref="alerts")
     comments = relationship("Comment", back_populates="alert", cascade="all, delete-orphan")
@@ -47,3 +49,11 @@ class SystemSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True)
     value = Column(String) # Store as JSON string if needed
+
+class Playbook(Base):
+    __tablename__ = "playbooks"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=False)
+    steps = Column(Text, nullable=False) # JSON or text steps
+    embedding = Column(Text, nullable=True) # JSON string of floats

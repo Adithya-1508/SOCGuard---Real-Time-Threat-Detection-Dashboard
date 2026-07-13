@@ -63,6 +63,8 @@ def _store_alert_sync(alert: dict):
                     threat_tags=alert.get("threat_tags"),
                     latitude=alert.get("latitude"),
                     longitude=alert.get("longitude"),
+                    explanation=alert.get("explanation"),
+                    agent_report=alert.get("agent_report"),
                 )
                 .returning(Alert.id)
             )
@@ -151,6 +153,8 @@ async def create_and_notify(event: dict, severity: float, extra: dict):
         "threat_tags": json.dumps(enrich_data.get("tags")) if enrich_data.get("tags") else None,
         "latitude": enrich_data.get("latitude"),
         "longitude": enrich_data.get("longitude"),
+        "explanation": extra.get("explanation"),
+        "agent_report": extra.get("agent_report"),
     }
 
     # store alert
